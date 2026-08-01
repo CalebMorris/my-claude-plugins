@@ -10,8 +10,28 @@ This repo is a [Claude Code plugin marketplace](.claude-plugin/marketplace.json)
 |---|---|
 | [`passthrough-hook-example`](plugins/passthrough-hook-example) | Bootstrap example: a `PreToolUse` hook that does nothing but pass through. Use as a template for new hook-based plugins. |
 
-To try a plugin locally:
+## Usage
+
+### Install from the marketplace
+
+Add this repo as a marketplace, then install a plugin from it:
+
+```
+/plugin marketplace add CalebMorris/my-claude-plugins
+/plugin install passthrough-hook-example@my-claude-plugins
+```
+
+Update the marketplace to pick up new plugins or changes:
+
+```
+/plugin marketplace update my-claude-plugins
+```
+
+### Try a plugin locally without installing
+
+Clone the repo and point Claude Code at a plugin directory directly:
 
 ```bash
-claude --plugin-dir /path/to/plugins/<plugin-name>
+git clone https://github.com/CalebMorris/my-claude-plugins.git
+claude --plugin-dir my-claude-plugins/plugins/<plugin-name>
 ```
