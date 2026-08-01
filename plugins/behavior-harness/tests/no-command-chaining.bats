@@ -96,3 +96,48 @@ assert_denied() {
   run run_hook "Bash" 'echo "unterminated'
   [ "$status" -eq 0 ]
 }
+
+@test "denies newline-chained commands" {
+  run run_hook "Bash" $'echo "test"\necho "test2"'
+  assert_denied
+  echo "$output" | jq -e '.hookSpecificOutput.permissionDecisionReason | contains("newline")' >/dev/null
+}
+
+@test "treats a command that is only a trailing newline as empty (allowed)" {
+  # $(...) command substitution strips trailing newlines, so a string that is
+  # nothing but newline(s) collapses to "" before it ever reaches the scanner
+  # — same as the existing empty-command case, not a chaining bypass.
+  run run_hook "Bash" $'\n'
+  assert_allowed
+}
+
+@test "denies a multi-line background-and-follow-up command" {
+  run run_hook "Bash" $'pnpm dev > /tmp/log 2>&1 &\ndisown\nsleep 3\ncat /tmp/log'
+  assert_denied
+}
+
+@test "allows a semicolon inside a multi-line double-quoted string" {
+  run run_hook "Bash" $'echo "line one\nline two; still one string"'
+  assert_allowed
+}
+
+@test "allows a backslash-continued multi-line command" {
+  run run_hook "Bash" $'echo hi \\\necho bye'
+  assert_allowed
+}
+
+@test "uses the same deny message template for ; and newline chaining" {
+  run run_hook "Bash" 'echo "test"; echo "test2"'
+  semicolon_reason=$(echo "$output" | jq -r '.hookSpecificOutput.permissionDecisionReason')
+  # Strip the leading "Command chaining detected (`LABEL`): \"COMMAND\"." prefix
+  # (which necessarily differs — different delimiter, different command text)
+  # and compare only the shared explanatory boilerplate that follows it.
+  semicolon_template="${semicolon_reason#*. }"
+
+  run run_hook "Bash" $'echo "test"\necho "test2"'
+  newline_reason=$(echo "$output" | jq -r '.hookSpecificOutput.permissionDecisionReason')
+  newline_template="${newline_reason#*. }"
+
+  [ -n "$semicolon_template" ]
+  [ "$semicolon_template" = "$newline_template" ]
+}
