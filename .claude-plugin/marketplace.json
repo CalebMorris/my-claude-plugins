@@ -1,0 +1,14 @@
+{
+  "name": "my-claude-plugins",
+  "owner": {
+    "name": "Caleb Morris",
+    "email": "caleb.morris.g@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "passthrough-hook-example",
+      "source": "./plugins/passthrough-hook-example",
+      "description": "Minimal example plugin with a hook that does nothing but pass through."
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "passthrough-hook-example",
+  "version": "0.1.0",
+  "description": "Bootstrap example plugin: a PreToolUse hook that does nothing but pass through, for use as a template.",
+  "author": {
+    "name": "Caleb Morris",
+    "email": "caleb.morris.g@gmail.com"
+  }
+}
