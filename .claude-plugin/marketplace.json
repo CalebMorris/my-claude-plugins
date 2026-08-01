@@ -9,6 +9,11 @@
       "name": "passthrough-hook-example",
       "source": "./plugins/passthrough-hook-example",
       "description": "Minimal example plugin with a hook that does nothing but pass through."
+    },
+    {
+      "name": "behavior-harness",
+      "source": "./plugins/behavior-harness",
+      "description": "Hooks that steer Claude away from specific bad behaviors, starting with blocking chained Bash commands."
     }
   ]
 }
