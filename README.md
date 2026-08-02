@@ -22,11 +22,15 @@ Add this repo as a marketplace, then install a plugin from it:
 /plugin install passthrough-hook-example@my-claude-plugins
 ```
 
-Update the marketplace to pick up new plugins or changes:
+### Updating an installed plugin after a change
 
-```
-/plugin marketplace update my-claude-plugins
-```
+1. Commit and push the change to GitHub.
+2. `/plugin marketplace update my-claude-plugins` — pulls the new commit into
+   your installed copy.
+3. `/reload-plugins` — re-registers hooks from the updated copy.
+
+Both steps are required. `/reload-plugins` alone will not pick up new
+commits — it only re-registers whatever is already installed.
 
 ### Try a plugin locally without installing
 
