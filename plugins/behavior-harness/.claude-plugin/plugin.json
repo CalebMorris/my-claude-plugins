@@ -1,6 +1,6 @@
 {
   "name": "behavior-harness",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Hooks that steer Claude away from specific bad behaviors during a session, starting with blocking chained Bash commands.",
   "author": {
     "name": "Caleb Morris",
