@@ -28,6 +28,30 @@ naming the operator it found and the offending command, so Claude sees
 why the call was blocked and knows to split it into separate `Bash`
 calls next time.
 
+### No git mutations (`hooks/no-git-mutations.sh`)
+
+A `PreToolUse` hook on the `Bash` matcher that denies any `git`
+invocation whose subcommand isn't on a small read-only allowlist
+(`status`, `diff`, `log`, `show`, `blame`, `ls-files`, `ls-tree`,
+`rev-parse`, `rev-list`, `describe`, `shortlog`, `cat-file`, `grep`,
+`help`, `version`/`--version`/`-v`).
+
+**Why:** git staging, working-tree, and history state (`add`,
+`checkout`, `restore`, `reset`, `commit`, `stash`, `branch`, `merge`,
+`rebase`, `push`, `pull`, `tag`, `mv`, `rm`, `clean`, ...) is the
+human's to manage, not Claude's. Claude is responsible for making file
+edits directly; the human reviews and stages/commits them. The hook
+uses an allowlist rather than a denylist of "dangerous" subcommands,
+since a denylist is trivially bypassed by any mutating subcommand
+nobody thought to add to it.
+
+**Out of scope on purpose:** the hook scans the command string for
+`git <subcommand>` tokens rather than fully parsing shell syntax, so it
+also catches git run inside a pipeline (e.g. `git log | head`).
+Command chaining (`;`, `&&`, `||`, newlines) is already denied by
+`no-command-chaining.sh`, so this hook doesn't need to reason about
+multiple independent statements sharing one call.
+
 ## Testing
 
 Tests use [bats-core](https://github.com/bats-core/bats-core), installed
