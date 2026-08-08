@@ -21,6 +21,12 @@ without adding structure. Use headings to separate sections instead.
 Note: this does not apply to YAML frontmatter delimiters, which also use
 `---` but serve a different, structural purpose.
 
+### Line splitting
+
+Break a block of text into multiple lines only at natural transition points,
+such as sentence-ending punctuation ('.', '?', etc.). Do not split lines based
+on line length, unless a project-specific linting rule requires it.
+
 ## Choose the document type
 
 Markdown documents split into three types with different readers and
