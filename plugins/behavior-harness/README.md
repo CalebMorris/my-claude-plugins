@@ -4,6 +4,12 @@ Hooks that steer Claude away from specific bad behaviors during a session.
 Starts simply and is meant to grow: each behavior gets its own hook script
 and its own test file.
 
+## Try it locally
+
+```bash
+claude --plugin-dir plugins/behavior-harness
+```
+
 ## Behaviors covered
 
 ### No command chaining (`hooks/no-command-chaining.sh`)
@@ -67,12 +73,6 @@ You can also invoke the hook script directly with sample JSON on stdin:
 ```bash
 echo '{"tool_name": "Bash", "tool_input": {"command": "echo a; echo b"}}' | \
   bash plugins/behavior-harness/hooks/no-command-chaining.sh
-```
-
-## Try it locally
-
-```bash
-claude --plugin-dir plugins/behavior-harness
 ```
 
 ## Adding a new behavior

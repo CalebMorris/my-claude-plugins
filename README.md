@@ -8,8 +8,8 @@ This repo is a [Claude Code plugin marketplace](.claude-plugin/marketplace.json)
 
 | Plugin | Description |
 |---|---|
-| [`passthrough-hook-example`](plugins/passthrough-hook-example) | Bootstrap example: a `PreToolUse` hook that does nothing but pass through. Use as a template for new hook-based plugins. |
 | [`behavior-harness`](plugins/behavior-harness) | Hooks that steer Claude away from specific bad behaviors, starting with blocking chained Bash commands (`;`, `&&`, `\|\|`). |
+| [`documentation-manager`](plugins/documentation-manager) | Skills that steer how Claude writes and maintains documentation, starting with markdown formatting rules. |
 
 ## Usage
 
@@ -19,7 +19,7 @@ Add this repo as a marketplace, then install a plugin from it:
 
 ```
 /plugin marketplace add CalebMorris/my-claude-plugins
-/plugin install passthrough-hook-example@my-claude-plugins
+/plugin install behavior-harness@my-claude-plugins
 ```
 
 ### Updating an installed plugin after a change

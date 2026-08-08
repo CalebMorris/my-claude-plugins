@@ -1,0 +1,9 @@
+{
+  "name": "documentation-manager",
+  "version": "0.3.0",
+  "description": "Skills that steer how Claude writes and maintains documentation, starting with markdown formatting rules.",
+  "author": {
+    "name": "Caleb Morris",
+    "email": "caleb.morris.g@gmail.com"
+  }
+}
