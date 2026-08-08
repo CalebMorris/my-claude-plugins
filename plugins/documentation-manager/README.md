@@ -9,9 +9,22 @@ skill.
 ### markdown-writing (`skills/markdown-writing`)
 
 House formatting rules for markdown documents (README files, guides,
-design docs, plugin skill/command files). Currently covers:
+design docs, plugin skill/command files, agent-consumed docs like
+CLAUDE.md). `SKILL.md` holds universal rules that apply to every
+document — currently, no `---` horizontal rules in document bodies, use
+headings instead — plus a router that picks one of three type-specific
+references:
 
-- No `---` horizontal rules in document bodies — use headings instead.
+- `references/agentic-document.md` — docs read by Claude/agents
+  (`SKILL.md`, `CLAUDE.md`, command/agent markdown). Structure for
+  lazy-loading: a lean root plus topic-specific children loaded on
+  demand.
+- `references/human-documentation.md` — guides, design docs, RFCs,
+  runbooks, tutorials. Structure and style rules for clarity and
+  conciseness.
+- `references/readme.md` — the top-level project `README.md`.
+  Concepts-first and minimal; links out to deeper docs instead of
+  duplicating them.
 
 ## Try it locally
 
