@@ -4,6 +4,12 @@ Skills that steer how Claude writes and maintains documentation. Starts
 simply and is meant to grow: each documentation convention gets its own
 skill.
 
+## Try it locally
+
+```bash
+claude --plugin-dir plugins/documentation-manager
+```
+
 ## Skills
 
 ### markdown-writing (`skills/markdown-writing`)
@@ -25,12 +31,6 @@ references:
 - `references/readme.md` — the top-level project `README.md`.
   Concepts-first and minimal; links out to deeper docs instead of
   duplicating them.
-
-## Try it locally
-
-```bash
-claude --plugin-dir plugins/documentation-manager
-```
 
 ## Adding a new convention
 
