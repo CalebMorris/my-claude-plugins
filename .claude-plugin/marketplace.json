@@ -14,6 +14,11 @@
       "name": "behavior-harness",
       "source": "./plugins/behavior-harness",
       "description": "Hooks that steer Claude away from specific bad behaviors, starting with blocking chained Bash commands."
+    },
+    {
+      "name": "documentation-manager",
+      "source": "./plugins/documentation-manager",
+      "description": "Skills that steer how Claude writes and maintains documentation, starting with markdown formatting rules."
     }
   ]
 }
