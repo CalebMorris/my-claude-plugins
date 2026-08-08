@@ -30,9 +30,9 @@ another.
 
 | Document type | Reader | Examples | Reference |
 |---|---|---|---|
-| Agentic document | Claude or another agent | `SKILL.md`, `CLAUDE.md`, command/agent markdown, any doc loaded into an agent's context | `references/agentic-document.md` |
-| Human documentation | A human developer | Guides, how-tos, design docs, RFCs, runbooks, tutorials | `references/human-documentation.md` |
-| Top-level README | A newcomer evaluating the project | The repo or package root `README.md` | `references/readme.md` |
+| Agentic document | Claude or another agent | `SKILL.md`, `CLAUDE.md`, command/agent markdown, any doc loaded into an agent's context | @references/agentic-document.md |
+| Human documentation | A human developer | Guides, how-tos, design docs, RFCs, runbooks, tutorials | @references/human-documentation.md |
+| Top-level README | A newcomer evaluating the project | The repo or package root `README.md` | @references/readme.md |
 
 If the type is ambiguous, use these signals in order: the file name/path
 (`README.md` at a project root is always the README type; `SKILL.md`,
