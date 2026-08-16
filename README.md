@@ -10,6 +10,7 @@ This repo is a [Claude Code plugin marketplace](.claude-plugin/marketplace.json)
 |---|---|
 | [`behavior-harness`](plugins/behavior-harness) | Hooks that steer Claude away from specific bad behaviors, starting with blocking chained Bash commands (`;`, `&&`, `\|\|`). |
 | [`documentation-manager`](plugins/documentation-manager) | Skills that steer how Claude writes and maintains documentation, starting with markdown formatting rules. |
+| [`reference-skills`](plugins/reference-skills) | A vendored bundle of third-party reference skills (Jetpack Compose, Robolectric, and more over time), installed as one plugin. |
 
 ## Usage
 
@@ -19,7 +20,7 @@ Add this repo as a marketplace, then install a plugin from it:
 
 ```
 /plugin marketplace add CalebMorris/my-claude-plugins
-/plugin install behavior-harness@my-claude-plugins
+/plugin install reference-skills@my-claude-plugins
 ```
 
 ### Updating an installed plugin after a change

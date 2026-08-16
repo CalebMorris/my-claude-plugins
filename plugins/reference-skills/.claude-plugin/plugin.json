@@ -1,0 +1,5 @@
+{
+  "name": "reference-skills",
+  "version": "0.1.0",
+  "description": "A vendored bundle of third-party reference skills, each addressed as reference-skills:<skill-name> once installed. Install once to get every skill in the bundle."
+}

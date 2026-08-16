@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "modern-jetpack-compose": {
+      "source": "anhvt52/jetpack-compose-skills",
+      "sourceType": "github",
+      "skillPath": "modern-jetpack-compose/SKILL.md",
+      "computedHash": "7ab67c0306af2cf3b53301e965da013b0a171a7eb38cbd84a5bc182d07bc0255"
+    },
+    "using-robolectric-correctly": {
+      "source": "skydoves/android-testing-skills",
+      "sourceType": "github",
+      "skillPath": "jvm-tests/robolectric/using-robolectric-correctly/SKILL.md",
+      "computedHash": "b1460aece26a14c59b5203b29ca809552f614ec634b968eb4e05786a1dd32675"
+    }
+  }
+}
