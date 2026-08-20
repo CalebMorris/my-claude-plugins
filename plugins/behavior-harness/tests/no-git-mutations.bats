@@ -2,11 +2,29 @@
 
 HOOK="$BATS_TEST_DIRNAME/../hooks/no-git-mutations.sh"
 
+# Mirrors the documented PreToolUse hook payload, not just the two fields the
+# hook reads, so the tests exercise the real input contract.
 run_hook() {
   local tool_name="$1"
   local command="$2"
   jq -n --arg tool_name "$tool_name" --arg command "$command" \
-    '{tool_name: $tool_name, tool_input: {command: $command}}' | bash "$HOOK"
+    '{
+      session_id: "test-session",
+      prompt_id: "550e8400-e29b-41d4-a716-446655440000",
+      transcript_path: "/tmp/transcript.jsonl",
+      cwd: "/tmp/test-cwd",
+      permission_mode: "default",
+      effort: {level: "medium"},
+      hook_event_name: "PreToolUse",
+      tool_name: $tool_name,
+      tool_use_id: "test-tool-use",
+      tool_input: {
+        command: $command,
+        description: "test command",
+        timeout: 120000,
+        run_in_background: false
+      }
+    }' | bash "$HOOK"
 }
 
 assert_allowed() {
@@ -99,6 +117,46 @@ assert_denied() {
 @test "denies git rm" {
   run run_hook "Bash" 'git rm file.txt'
   assert_denied
+}
+
+@test "denies git mv" {
+  run run_hook "Bash" 'git mv a b'
+  assert_denied
+}
+
+@test "denies git -C <dir> mv" {
+  run run_hook "Bash" 'git -C /tmp/repo mv a b'
+  assert_denied
+}
+
+@test "denies a quoted subcommand" {
+  run run_hook "Bash" 'git "mv" a b'
+  assert_denied
+}
+
+@test "denies git invoked by absolute path" {
+  run run_hook "Bash" '/usr/bin/git mv a b'
+  assert_denied
+}
+
+@test "denies git mv hidden in a pipeline" {
+  run run_hook "Bash" 'echo start | git mv a b'
+  assert_denied
+}
+
+@test "allows git -C <dir> status" {
+  run run_hook "Bash" 'git -C /tmp/repo status'
+  assert_allowed
+}
+
+@test "allows git --version" {
+  run run_hook "Bash" 'git --version'
+  assert_allowed
+}
+
+@test "allows git -v" {
+  run run_hook "Bash" 'git -v'
+  assert_allowed
 }
 
 @test "denies git mutation hidden after a pipeline" {

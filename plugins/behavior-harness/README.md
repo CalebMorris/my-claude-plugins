@@ -51,14 +51,16 @@ uses an allowlist rather than a denylist of "dangerous" subcommands,
 since a denylist is trivially bypassed by any mutating subcommand
 nobody thought to add to it.
 
-**Out of scope on purpose:** the hook scans the command string for
-`git <subcommand>` tokens rather than fully parsing shell syntax, so it
-also catches git run inside a pipeline (e.g. `git log | head`).
-Command chaining (`;`, `&&`, `||`, newlines) is already denied by
-`no-command-chaining.sh`, so this hook doesn't need to reason about
-multiple independent statements sharing one call.
+**Detection:** the command is split into shell words by a quote-aware tokenizer, so a `git` invocation is recognized wherever it appears — inside a pipeline (`git log | head`), behind top-level flags (`git -C /some/repo mv a b`), with a quoted subcommand (`git "mv" a b`), or called by path (`/usr/bin/git mv a b`).
+Words that merely contain `git`, like `mygit` and `digit`, are not matched.
+The tokenizer needs no external command, so the hook behaves the same on macOS and Linux.
+
+**Out of scope on purpose:** tokenizing is purely lexical — the command is never evaluated or expanded, so a subcommand assembled at runtime (`git $verb`) is not resolved and will not be blocked.
+Command chaining (`;`, `&&`, `||`, newlines) is already denied by `no-command-chaining.sh`, so this hook doesn't need to reason about multiple independent statements sharing one call.
 
 ## Testing
+
+Bash hooks have no first-party test harness, so these tests pipe a synthesized hook payload into the script and assert on its exit status and stdout.
 
 Tests use [bats-core](https://github.com/bats-core/bats-core), installed
 locally as a dev dependency (no sudo/global install required):
@@ -78,6 +80,8 @@ echo '{"tool_name": "Bash", "tool_input": {"command": "echo a; echo b"}}' | \
 ## Adding a new behavior
 
 1. Add a hook script under `hooks/` and wire it into `hooks/hooks.json`.
-2. Write failing tests in `tests/<behavior>.bats` first (red).
+2. Write failing tests in `tests/<behavior>.bats` first (red), with fixtures carrying the full documented hook payload rather than only the fields the script reads.
 3. Implement until `npm test` is green.
 4. Document the behavior and its rationale in this README.
+
+Keep hook scripts POSIX-portable: hooks run against BSD tools on macOS, so a GNU-only flag such as `grep -P` fails there, and an error swallowed with `2>/dev/null || true` turns that failure into a silent allow.
