@@ -1,24 +1,14 @@
 #!/bin/bash
-# PreToolUse hook (matcher: Bash): denies any `git` invocation whose
-# subcommand is not on a small read-only allowlist.
+# PreToolUse hook (matcher: Bash): denies any `git` invocation whose subcommand is not on a small read-only allowlist.
 #
-# Why: git staging/working-tree/history state (git add, checkout, reset,
-# commit, stash, branch, merge, rebase, push, ...) is the human's to manage,
-# not Claude's. Claude is responsible for making file edits directly; the
-# human reviews and stages/commits them. A denylist of "dangerous" git
-# subcommands is easy to bypass with a subcommand nobody thought to list, so
-# this uses the opposite default: only a short list of read-only,
-# state-inspecting subcommands is allowed, and everything else is denied.
+# Why: git staging/working-tree/history state (git add, checkout, reset, commit, stash, branch, merge, rebase, push, ...) is the human's to manage, not Claude's.
+# Claude is responsible for making file edits directly; the human reviews and stages/commits them.
+# A denylist of "dangerous" git subcommands is easy to bypass with a subcommand nobody thought to list, so this uses the opposite default: only a short list of read-only, state-inspecting subcommands is allowed, and everything else is denied.
 #
-# Detection splits the command into shell words with a quote-aware bash
-# tokenizer. It calls no external command, and must stay that way: the earlier
-# `grep -oP` detection matched nothing under BSD grep on macOS, which failed
-# open and allowed every git subcommand. Unquoted whitespace, |, ;, &, ( and )
-# are all word boundaries, so git invoked inside a pipeline (`git log | head`)
-# is scanned too; command chaining with ;, &&, || or newlines is separately
-# denied by no-command-chaining.sh, so this hook doesn't need to reason about
-# multiple independent statements. Tokenizing is purely lexical — the command
-# string is never evaluated or expanded.
+# Detection splits the command into shell words with a quote-aware tokenizer written in pure bash, and it must stay that way: the earlier `grep -oP` detection was rejected outright by BSD grep on macOS, and the swallowed error read as "no git in this command", allowing every subcommand.
+# Unquoted whitespace, |, ;, &, ( and ) all end a word, so git is found inside a pipeline (`git log | head`) and inside a $(...) substitution.
+# Chaining with ;, &&, || or newlines is separately denied by no-command-chaining.sh, so this hook doesn't need to reason about multiple independent statements.
+# Tokenizing is purely lexical — the command string is never evaluated or expanded — which bounds what can be caught: a subcommand assembled at runtime (`git $verb`) is never resolved, and a backtick is not a word boundary, so git inside a legacy `...` substitution is not recognized.
 set -euo pipefail
 
 input=$(cat)
@@ -48,8 +38,7 @@ is_allowed() {
   return 1
 }
 
-# A token is the git binary if it is `git` itself or a path ending in /git,
-# so `/usr/bin/git mv` is caught but `mygit`/`digit` are not.
+# A token is the git binary if it is `git` itself or a path ending in /git, so `/usr/bin/git mv` is caught but `mygit`/`digit` are not.
 is_git_token() {
   case "$1" in
     git | */git) return 0 ;;
@@ -57,15 +46,13 @@ is_git_token() {
   esac
 }
 
-# Cheap bail-out: if "git" never appears as a substring, no git token can
-# possibly be present, so skip the tokenizer entirely.
+# Cheap bail-out: if "git" never appears as a substring, no git token can possibly be present, so skip the tokenizer entirely.
 case "$command" in
   *git*) ;;
   *) exit 0 ;;
 esac
 
-# Tokenizer state: walk the command one character at a time, tracking quote
-# and escape state so only unquoted separators break a word.
+# Tokenizer state: walk the command one character at a time, tracking quote and escape state so only unquoted separators break a word.
 tokens=()
 token=""
 have_token=0
@@ -83,9 +70,8 @@ flush_token() {
   fi
 }
 
-# Quote characters are consumed rather than copied into the token, so
-# `git "mv"` tokenizes identically to `git mv`. have_token distinguishes an
-# empty-but-real token (`""`) from no token at all.
+# Quote characters are consumed rather than copied into the token, so `git "mv"` tokenizes identically to `git mv`.
+# have_token distinguishes an empty-but-real token (`""`) from no token at all.
 while [ "$i" -lt "$length" ]; do
   char="${command:i:1}"
 
@@ -148,9 +134,9 @@ i=0
 while [ "$i" -lt "$n" ]; do
   if is_git_token "${tokens[$i]}"; then
     j=$((i + 1))
-    # Skip top-level git options to reach the subcommand token. -C and -c take
-    # a separate value argument, so consume that too — otherwise `git -C <dir>
-    # status` would read <dir> as the subcommand and deny an allowed command.
+    # Skip top-level git options to reach the subcommand token.
+    # -C and -c take a separate value argument, so consume that too — otherwise `git -C <dir> status` would read <dir> as the subcommand and deny an allowed command.
+    # A git call that is nothing but options (`git --version`, `git -v`) runs out of tokens here and is allowed without consulting the allowlist.
     while [ "$j" -lt "$n" ]; do
       case "${tokens[$j]}" in
         -C | -c)
