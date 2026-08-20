@@ -10,11 +10,15 @@
 # this uses the opposite default: only a short list of read-only,
 # state-inspecting subcommands is allowed, and everything else is denied.
 #
-# Detection scans the whole command string for `git <subcommand>` tokens
-# (so it also catches git run inside a pipeline, e.g. `git log | head`),
-# rather than trying to fully parse the command — command chaining with
-# ;, &&, ||, or newlines is already denied by no-command-chaining.sh, so
-# this hook doesn't need to reason about multiple independent statements.
+# Detection splits the command into shell words with a quote-aware bash
+# tokenizer — no external command, so no GNU-only grep -P/PCRE dependency
+# (BSD grep on macOS rejects -P, which used to make this hook silently allow
+# every git subcommand). Unquoted whitespace, |, ;, &, ( and ) are all word
+# boundaries, so git invoked inside a pipeline (`git log | head`) is scanned
+# too; command chaining with ;, &&, || or newlines is separately denied by
+# no-command-chaining.sh, so this hook doesn't need to reason about multiple
+# independent statements. Tokenizing is purely lexical — the command string is
+# never evaluated or expanded.
 set -euo pipefail
 
 input=$(cat)
@@ -44,20 +48,134 @@ is_allowed() {
   return 1
 }
 
-subcommands=$(printf '%s' "$command" | grep -oP '(?<![\w-])git\s+\K[a-zA-Z][a-zA-Z0-9_-]*' 2>/dev/null || true)
+# A token is the git binary if it is `git` itself or a path ending in /git,
+# so `/usr/bin/git mv` is caught but `mygit`/`digit` are not.
+is_git_token() {
+  case "$1" in
+    git | */git) return 0 ;;
+    *) return 1 ;;
+  esac
+}
 
-if [ -z "$subcommands" ]; then
-  exit 0
-fi
+# Cheap bail-out: if "git" never appears as a substring, no git token can
+# possibly be present, so skip the tokenizer entirely.
+case "$command" in
+  *git*) ;;
+  *) exit 0 ;;
+esac
+
+# Tokenizer state: walk the command one character at a time, tracking quote
+# and escape state so only unquoted separators break a word.
+tokens=()
+token=""
+have_token=0
+in_single=0
+in_double=0
+escaped=0
+length=${#command}
+i=0
+
+flush_token() {
+  if [ "$have_token" -eq 1 ]; then
+    tokens+=("$token")
+    token=""
+    have_token=0
+  fi
+}
+
+# Quote characters are consumed rather than copied into the token, so
+# `git "mv"` tokenizes identically to `git mv`. have_token distinguishes an
+# empty-but-real token (`""`) from no token at all.
+while [ "$i" -lt "$length" ]; do
+  char="${command:i:1}"
+
+  if [ "$escaped" -eq 1 ]; then
+    token+="$char"
+    have_token=1
+    escaped=0
+    i=$((i + 1))
+    continue
+  fi
+
+  case "$char" in
+    '\')
+      if [ "$in_single" -eq 0 ]; then
+        escaped=1
+      else
+        token+="$char"
+        have_token=1
+      fi
+      ;;
+    "'")
+      if [ "$in_double" -eq 0 ]; then
+        if [ "$in_single" -eq 1 ]; then in_single=0; else in_single=1; fi
+        have_token=1
+      else
+        token+="$char"
+        have_token=1
+      fi
+      ;;
+    '"')
+      if [ "$in_single" -eq 0 ]; then
+        if [ "$in_double" -eq 1 ]; then in_double=0; else in_double=1; fi
+        have_token=1
+      else
+        token+="$char"
+        have_token=1
+      fi
+      ;;
+    ' ' | $'\t' | $'\n' | '|' | ';' | '&' | '(' | ')')
+      if [ "$in_single" -eq 1 ] || [ "$in_double" -eq 1 ]; then
+        token+="$char"
+        have_token=1
+      else
+        flush_token
+      fi
+      ;;
+    *)
+      token+="$char"
+      have_token=1
+      ;;
+  esac
+
+  i=$((i + 1))
+done
+flush_token
 
 blocked=""
-while IFS= read -r sub; do
-  [ -z "$sub" ] && continue
-  if ! is_allowed "$sub"; then
-    blocked="$sub"
-    break
+n=${#tokens[@]}
+i=0
+while [ "$i" -lt "$n" ]; do
+  if is_git_token "${tokens[$i]}"; then
+    j=$((i + 1))
+    # Skip top-level git options to reach the subcommand token. -C and -c take
+    # a separate value argument, so consume that too — which is what makes
+    # `git -C <dir> mv` detected rather than read as a bare `git`.
+    while [ "$j" -lt "$n" ]; do
+      case "${tokens[$j]}" in
+        -C | -c)
+          j=$((j + 2))
+          continue
+          ;;
+        -*)
+          j=$((j + 1))
+          continue
+          ;;
+        *)
+          break
+          ;;
+      esac
+    done
+    if [ "$j" -lt "$n" ]; then
+      sub="${tokens[$j]}"
+      if ! is_allowed "$sub"; then
+        blocked="$sub"
+        break
+      fi
+    fi
   fi
-done <<< "$subcommands"
+  i=$((i + 1))
+done
 
 if [ -n "$blocked" ]; then
   reason="Blocked \`git $blocked\`: \"$command\". Claude must not change git staging, working-tree, or history state (add, checkout, restore, reset, stash, commit, branch, merge, rebase, push, pull, tag, mv, rm, clean, ...) — that's the human's job. Only read-only inspection commands are allowed ($allowed_subcommands). Make the file edits directly and ask the user to handle staging/committing."

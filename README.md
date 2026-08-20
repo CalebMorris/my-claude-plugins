@@ -8,7 +8,7 @@ This repo is a [Claude Code plugin marketplace](.claude-plugin/marketplace.json)
 
 | Plugin | Description |
 |---|---|
-| [`behavior-harness`](plugins/behavior-harness) | Hooks that steer Claude away from specific bad behaviors, starting with blocking chained Bash commands (`;`, `&&`, `\|\|`). |
+| [`behavior-harness`](plugins/behavior-harness) | Hooks that steer Claude away from specific bad behaviors: blocking chained Bash commands (`;`, `&&`, `\|\|`) and blocking git staging/history mutations. |
 | [`documentation-manager`](plugins/documentation-manager) | Skills that steer how Claude writes and maintains documentation, starting with markdown formatting rules. |
 | [`reference-skills`](plugins/reference-skills) | A vendored bundle of third-party reference skills (Jetpack Compose, Robolectric, and more over time), installed as one plugin. |
 
@@ -25,13 +25,21 @@ Add this repo as a marketplace, then install a plugin from it:
 
 ### Updating an installed plugin after a change
 
-1. Commit and push the change to GitHub.
-2. `/plugin marketplace update my-claude-plugins` — pulls the new commit into
+1. Bump `version` in the plugin's `.claude-plugin/plugin.json`. The installed
+   copy is keyed by that string, so without a bump the steps below will not
+   pick up your change.
+2. Commit and push the change to GitHub.
+3. `/plugin marketplace update my-claude-plugins` — pulls the new commit into
    your installed copy.
-3. `/reload-plugins` — re-registers hooks from the updated copy.
+4. `/reload-plugins` — re-registers hooks from the updated copy.
+5. Confirm `~/.claude/plugins/cache/my-claude-plugins/<plugin>/<new-version>/`
+   exists and contains the files you changed.
 
-Both steps are required. `/reload-plugins` alone will not pick up new
-commits — it only re-registers whatever is already installed.
+Every step is required. `/reload-plugins` alone will not pick up new
+commits — it only re-registers whatever is already installed — and neither it
+nor `/plugin marketplace update` re-copies content into an existing version's
+cache directory. Skipping the version bump means the change silently never
+takes effect.
 
 ### Try a plugin locally without installing
 
