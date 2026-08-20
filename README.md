@@ -25,21 +25,14 @@ Add this repo as a marketplace, then install a plugin from it:
 
 ### Updating an installed plugin after a change
 
-1. Bump `version` in the plugin's `.claude-plugin/plugin.json`. The installed
-   copy is keyed by that string, so without a bump the steps below will not
-   pick up your change.
+1. Bump `version` in the plugin's `.claude-plugin/plugin.json`.
 2. Commit and push the change to GitHub.
-3. `/plugin marketplace update my-claude-plugins` — pulls the new commit into
-   your installed copy.
+3. `/plugin marketplace update my-claude-plugins` — pulls the new commit into your installed copy.
 4. `/reload-plugins` — re-registers hooks from the updated copy.
-5. Confirm `~/.claude/plugins/cache/my-claude-plugins/<plugin>/<new-version>/`
-   exists and contains the files you changed.
+5. Confirm `~/.claude/plugins/cache/my-claude-plugins/<plugin>/<new-version>/` exists and contains the files you changed.
 
-Every step is required. `/reload-plugins` alone will not pick up new
-commits — it only re-registers whatever is already installed — and neither it
-nor `/plugin marketplace update` re-copies content into an existing version's
-cache directory. Skipping the version bump means the change silently never
-takes effect.
+Every step is required.
+The installed copy is keyed by the version string, and neither `/plugin marketplace update` nor `/reload-plugins` re-copies content into a version's existing cache directory — so without the bump in step 1, the change silently never takes effect.
 
 ### Try a plugin locally without installing
 

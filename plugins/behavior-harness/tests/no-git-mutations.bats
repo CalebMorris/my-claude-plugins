@@ -144,6 +144,11 @@ assert_denied() {
   assert_denied
 }
 
+@test "allows git -C <dir> status" {
+  run run_hook "Bash" 'git -C /tmp/repo status'
+  assert_allowed
+}
+
 @test "allows git --version" {
   run run_hook "Bash" 'git --version'
   assert_allowed

@@ -11,14 +11,14 @@
 # state-inspecting subcommands is allowed, and everything else is denied.
 #
 # Detection splits the command into shell words with a quote-aware bash
-# tokenizer — no external command, so no GNU-only grep -P/PCRE dependency
-# (BSD grep on macOS rejects -P, which used to make this hook silently allow
-# every git subcommand). Unquoted whitespace, |, ;, &, ( and ) are all word
-# boundaries, so git invoked inside a pipeline (`git log | head`) is scanned
-# too; command chaining with ;, &&, || or newlines is separately denied by
-# no-command-chaining.sh, so this hook doesn't need to reason about multiple
-# independent statements. Tokenizing is purely lexical — the command string is
-# never evaluated or expanded.
+# tokenizer. It calls no external command, and must stay that way: the earlier
+# `grep -oP` detection matched nothing under BSD grep on macOS, which failed
+# open and allowed every git subcommand. Unquoted whitespace, |, ;, &, ( and )
+# are all word boundaries, so git invoked inside a pipeline (`git log | head`)
+# is scanned too; command chaining with ;, &&, || or newlines is separately
+# denied by no-command-chaining.sh, so this hook doesn't need to reason about
+# multiple independent statements. Tokenizing is purely lexical — the command
+# string is never evaluated or expanded.
 set -euo pipefail
 
 input=$(cat)
@@ -149,8 +149,8 @@ while [ "$i" -lt "$n" ]; do
   if is_git_token "${tokens[$i]}"; then
     j=$((i + 1))
     # Skip top-level git options to reach the subcommand token. -C and -c take
-    # a separate value argument, so consume that too — which is what makes
-    # `git -C <dir> mv` detected rather than read as a bare `git`.
+    # a separate value argument, so consume that too — otherwise `git -C <dir>
+    # status` would read <dir> as the subcommand and deny an allowed command.
     while [ "$j" -lt "$n" ]; do
       case "${tokens[$j]}" in
         -C | -c)

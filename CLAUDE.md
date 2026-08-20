@@ -15,8 +15,8 @@ the marketplace/plugins are reloaded.
 
 ## Hooks
 
-- Hooks fail open: exit 2 blocks unconditionally; any other nonzero exit lets the tool call proceed.
-- Emit the deny JSON and exit 0. Never rely on a `set -e` abort to block.
+- Hooks fail open: only exit 2 blocks a tool call, so a crashing hook blocks nothing.
+- Block by emitting the deny JSON and exiting 0. Never rely on a `set -e` abort to block.
 - Never swallow errors (`2>/dev/null || true`) in a detection path — an empty result reads as "allow".
 - Keep hook scripts POSIX-portable. Hooks run with BSD tools on macOS: no `grep -P`, no GNU-only flags.
 - Synthesize the full documented payload in test fixtures, not just the fields the hook reads.
