@@ -58,6 +58,24 @@ The tokenizer needs no external command, so the hook behaves the same on macOS a
 **Out of scope on purpose:** tokenizing is purely lexical — the command is never evaluated or expanded, so a subcommand assembled at runtime (`git $verb`) is not resolved and will not be blocked.
 Command chaining (`;`, `&&`, `||`, newlines) is already denied by `no-command-chaining.sh`, so this hook doesn't need to reason about multiple independent statements sharing one call.
 
+### No early git flags (`hooks/no-git-early-flags.sh`)
+
+A `PreToolUse` hook on the `Bash` matcher that denies any `git` invocation carrying options ahead of the subcommand — `git -* <subcommand> ...` in every form: `git -C <dir> status`, `git -c key=value log`, `git -ckey=value log`, `git --config-env=... log`, `git --no-pager log`, `git -p log`, `git --git-dir=... status`, `git --work-tree <dir> status`, `git --bare rev-parse`, and any flag git adds in the future.
+
+**Why:** Claude habitually prefixes git commands with `-C /absolute/path`, `-c log.showSignature=false`, `-c core.pager=cat` or `--no-pager`.
+Those flags add nothing — the session already runs inside the repository, and pager and signature behavior belong in the user's git config — but they break granular Bash permission rules.
+An allow rule such as `Bash(git log *)` is matched against the literal command text, so `git -C /repo log --oneline` or `git -c core.pager=cat log --oneline` no longer matches and every call falls through to a manual approval prompt.
+
+**Why not just widen the allow rule:** `Bash(git -* log *)` would match, but `-c` can set `core.pager`, `core.fsmonitor`, `core.sshCommand` and other keys that make git run an arbitrary program, `-C`/`--git-dir`/`--work-tree` retarget the command at a different repository, and `--exec-path` swaps the git binaries themselves.
+Allowing any early flag reopens exactly what the narrow rule is meant to gate.
+There is no Claude Code setting that turns the habit off, and CLAUDE.md guidance does not reliably override it, so denying the call is the only option that keeps the rules narrow.
+
+**What Claude sees:** the `permissionDecisionReason` names each offending flag (with its value, for `-C`, `-c`, `--config-env`, `--git-dir`, `--work-tree` and `--namespace`), explains that early flags defeat the user's permission rules, and includes the exact same command with the flags cut out (original quoting preserved) so the retry matches the allow rule on the first attempt.
+
+**Detection:** shares the quote-aware tokenizer used by `no-git-mutations.sh`, so a flag is caught in a pipeline, when quoted (`git "-C" ...`), or when git is called by path.
+Only options *before* the subcommand count: `git log -c`, `git diff -c` and `git status --short` are subcommand options and are allowed.
+`git --version`, `git -v`, `git --help` and `git -h` are the whole command rather than a prefix to one, so they are treated as the subcommand and allowed.
+
 ## Testing
 
 Bash hooks have no first-party test harness, so these tests pipe a synthesized hook payload into the script and assert on its exit status and stdout.

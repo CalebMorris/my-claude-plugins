@@ -8,7 +8,7 @@
     {
       "name": "behavior-harness",
       "source": "./plugins/behavior-harness",
-      "description": "Hooks that steer Claude away from specific bad behaviors, starting with blocking chained Bash commands."
+      "description": "Hooks that steer Claude away from specific bad behaviors: chained Bash commands, git staging/history mutations, and early git flags (git -C <dir>, git -c key=value, git --no-pager, ...) that defeat permission rules."
     },
     {
       "name": "documentation-manager",
