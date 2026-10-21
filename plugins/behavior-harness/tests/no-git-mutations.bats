@@ -204,6 +204,90 @@ assert_denied() {
   assert_allowed
 }
 
+@test "allows git remote -h" {
+  run run_hook "Bash" 'git remote -h'
+  assert_allowed
+}
+
+@test "allows git remote --help" {
+  run run_hook "Bash" 'git remote --help'
+  assert_allowed
+}
+
+@test "allows git remote -v with stderr merged into stdout" {
+  run run_hook "Bash" 'git remote -v 2>&1'
+  assert_allowed
+}
+
+@test "allows git remote with stderr discarded" {
+  run run_hook "Bash" 'git remote 2>/dev/null'
+  assert_allowed
+}
+
+@test "allows git remote -v redirected to a file" {
+  run run_hook "Bash" 'git remote -v >remotes.txt'
+  assert_allowed
+}
+
+@test "allows git remote -v with a spaced redirect" {
+  run run_hook "Bash" 'git remote -v > remotes.txt'
+  assert_allowed
+}
+
+@test "allows git remote with both streams redirected" {
+  run run_hook "Bash" 'git remote -v &>/dev/null'
+  assert_allowed
+}
+
+@test "allows git remote -v 2>&1 piped to grep" {
+  run run_hook "Bash" 'git remote -v 2>&1 | grep origin'
+  assert_allowed
+}
+
+@test "denies a mutating remote action after a redirect" {
+  run run_hook "Bash" 'git remote >/dev/null add upstream https://example.com/repo.git'
+  assert_denied
+  echo "$output" | jq -r '.hookSpecificOutput.permissionDecisionReason' | grep -F 'git remote add' >/dev/null
+}
+
+@test "denies a mutating remote action after a merged-stream redirect" {
+  run run_hook "Bash" 'git remote 2>&1 add upstream https://example.com/repo.git'
+  assert_denied
+}
+
+@test "denies a mutating remote action after a both-streams redirect" {
+  run run_hook "Bash" 'git remote &>/dev/null add upstream https://example.com/repo.git'
+  assert_denied
+}
+
+@test "treats a digit word before a spaced redirect as an argument" {
+  run run_hook "Bash" 'git remote 2 >/dev/null'
+  assert_denied
+}
+
+@test "allows a quoted redirect character as an argument" {
+  run run_hook "Bash" 'git log --grep ">"'
+  assert_allowed
+}
+
+@test "ends the remote call at an unquoted newline" {
+  run run_hook "Bash" $'git remote\nls'
+  assert_allowed
+}
+
+@test "denies git mutation on a following line" {
+  run run_hook "Bash" $'git remote\ngit add .'
+  assert_denied
+}
+
+@test "reason lists the read-only remote forms" {
+  run run_hook "Bash" 'git remote add upstream https://example.com/repo.git'
+  assert_denied
+  reason=$(echo "$output" | jq -r '.hookSpecificOutput.permissionDecisionReason')
+  echo "$reason" | grep -F 'get-url' >/dev/null
+  echo "$reason" | grep -F -- '--help' >/dev/null
+}
+
 @test "denies git remote add" {
   run run_hook "Bash" 'git remote add upstream https://example.com/repo.git'
   assert_denied
