@@ -38,6 +38,32 @@ is_allowed() {
   return 1
 }
 
+# `git remote` both reads and mutates remotes, so it is allowed only when the action after it is read-only: none (a listing, optionally -v/--verbose), get-url, or show.
+# Every other action (add, set-url, rename, remove, prune, ...) is denied, and remote_action is set to it for the deny reason.
+# A segment end (|, ;, &, (, )) closes the remote call, so `git remote | head` is a bare listing rather than an action named head.
+remote_action=""
+is_read_only_remote() {
+  local k="$1"
+  while [ "$k" -lt "$n" ]; do
+    if [ "${segment_end[$((k - 1))]}" -eq 1 ]; then
+      return 0
+    fi
+    case "${tokens[$k]}" in
+      -v | --verbose)
+        k=$((k + 1))
+        ;;
+      get-url | show)
+        return 0
+        ;;
+      *)
+        remote_action="${tokens[$k]}"
+        return 1
+        ;;
+    esac
+  done
+  return 0
+}
+
 # A token is the git binary if it is `git` itself or a path ending in /git, so `/usr/bin/git mv` is caught but `mygit`/`digit` are not.
 is_git_token() {
   case "$1" in
@@ -54,6 +80,8 @@ esac
 
 # Tokenizer state: walk the command one character at a time, tracking quote and escape state so only unquoted separators break a word.
 tokens=()
+# Parallel to tokens: 1 when an unquoted |, ;, &, ( or ) follows the token, marking the end of its command segment.
+segment_end=()
 token=""
 have_token=0
 in_single=0
@@ -65,6 +93,7 @@ i=0
 flush_token() {
   if [ "$have_token" -eq 1 ]; then
     tokens+=("$token")
+    segment_end+=(0)
     token=""
     have_token=0
   fi
@@ -110,12 +139,23 @@ while [ "$i" -lt "$length" ]; do
         have_token=1
       fi
       ;;
-    ' ' | $'\t' | $'\n' | '|' | ';' | '&' | '(' | ')')
+    ' ' | $'\t' | $'\n')
       if [ "$in_single" -eq 1 ] || [ "$in_double" -eq 1 ]; then
         token+="$char"
         have_token=1
       else
         flush_token
+      fi
+      ;;
+    '|' | ';' | '&' | '(' | ')')
+      if [ "$in_single" -eq 1 ] || [ "$in_double" -eq 1 ]; then
+        token+="$char"
+        have_token=1
+      else
+        flush_token
+        if [ "${#tokens[@]}" -gt 0 ]; then
+          segment_end[$((${#tokens[@]} - 1))]=1
+        fi
       fi
       ;;
     *)
@@ -154,7 +194,12 @@ while [ "$i" -lt "$n" ]; do
     done
     if [ "$j" -lt "$n" ]; then
       sub="${tokens[$j]}"
-      if ! is_allowed "$sub"; then
+      if [ "$sub" = "remote" ]; then
+        if ! is_read_only_remote $((j + 1)); then
+          blocked="remote $remote_action"
+          break
+        fi
+      elif ! is_allowed "$sub"; then
         blocked="$sub"
         break
       fi
@@ -164,7 +209,7 @@ while [ "$i" -lt "$n" ]; do
 done
 
 if [ -n "$blocked" ]; then
-  reason="Blocked \`git $blocked\`: \"$command\". Claude must not change git staging, working-tree, or history state (add, checkout, restore, reset, stash, commit, branch, merge, rebase, push, pull, tag, mv, rm, clean, ...) — that's the human's job. Only read-only inspection commands are allowed ($allowed_subcommands). Make the file edits directly and ask the user to handle staging/committing."
+  reason="Blocked \`git $blocked\`: \"$command\". Claude must not change git staging, working-tree, or history state (add, checkout, restore, reset, stash, commit, branch, merge, rebase, push, pull, tag, mv, rm, clean, ...) — that's the human's job. Only read-only inspection commands are allowed ($allowed_subcommands, plus remote with no action, -v/--verbose, get-url or show). Make the file edits directly and ask the user to handle staging/committing."
   jq -n --arg reason "$reason" \
     '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $reason}}'
   exit 0

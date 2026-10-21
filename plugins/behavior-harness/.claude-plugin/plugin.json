@@ -1,6 +1,6 @@
 {
   "name": "behavior-harness",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Hooks that steer Claude away from specific bad behaviors during a session: blocking chained Bash commands, blocking git staging/history mutations, and blocking early git flags (git -C <dir>, git -c key=value, git --no-pager, ...) that defeat permission rules.",
   "author": {
     "name": "Caleb Morris",

@@ -42,6 +42,9 @@ invocation whose subcommand isn't on a small read-only allowlist
 `rev-parse`, `rev-list`, `describe`, `shortlog`, `cat-file`, `grep`,
 `help`, `version`/`--version`/`-v`).
 
+`remote` is allowed only for its read-only forms: a bare listing (`git remote`, `git remote -v`, `git remote --verbose`), `git remote get-url`, and `git remote show`.
+Every other `remote` action (`add`, `set-url`, `rename`, `remove`, `prune`, ...) is denied, and the reason names the action.
+
 **Why:** git staging, working-tree, and history state (`add`,
 `checkout`, `restore`, `reset`, `commit`, `stash`, `branch`, `merge`,
 `rebase`, `push`, `pull`, `tag`, `mv`, `rm`, `clean`, ...) is the

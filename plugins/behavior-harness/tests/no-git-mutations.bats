@@ -159,6 +159,92 @@ assert_denied() {
   assert_allowed
 }
 
+@test "allows bare git remote" {
+  run run_hook "Bash" 'git remote'
+  assert_allowed
+}
+
+@test "allows git remote -v" {
+  run run_hook "Bash" 'git remote -v'
+  assert_allowed
+}
+
+@test "allows git remote --verbose" {
+  run run_hook "Bash" 'git remote --verbose'
+  assert_allowed
+}
+
+@test "allows git remote get-url" {
+  run run_hook "Bash" 'git remote get-url origin'
+  assert_allowed
+}
+
+@test "allows git remote get-url --push" {
+  run run_hook "Bash" 'git remote get-url --push origin'
+  assert_allowed
+}
+
+@test "allows git remote show" {
+  run run_hook "Bash" 'git remote show origin'
+  assert_allowed
+}
+
+@test "allows git remote -v piped to grep" {
+  run run_hook "Bash" 'git remote -v | grep origin'
+  assert_allowed
+}
+
+@test "allows bare git remote piped to head" {
+  run run_hook "Bash" 'git remote | head -1'
+  assert_allowed
+}
+
+@test "allows git remote inside a substitution" {
+  run run_hook "Bash" 'echo $(git remote)'
+  assert_allowed
+}
+
+@test "denies git remote add" {
+  run run_hook "Bash" 'git remote add upstream https://example.com/repo.git'
+  assert_denied
+}
+
+@test "denies git remote set-url" {
+  run run_hook "Bash" 'git remote set-url origin https://example.com/repo.git'
+  assert_denied
+}
+
+@test "denies git remote remove" {
+  run run_hook "Bash" 'git remote remove origin'
+  assert_denied
+}
+
+@test "denies git remote rename" {
+  run run_hook "Bash" 'git remote rename origin upstream'
+  assert_denied
+}
+
+@test "denies git remote prune" {
+  run run_hook "Bash" 'git remote prune origin'
+  assert_denied
+}
+
+@test "denies git remote -v add" {
+  run run_hook "Bash" 'git remote -v add upstream https://example.com/repo.git'
+  assert_denied
+}
+
+@test "denies a quoted mutating remote action" {
+  run run_hook "Bash" 'git remote "set-url" origin https://example.com/repo.git'
+  assert_denied
+}
+
+@test "reason names the mutating remote action" {
+  run run_hook "Bash" 'git remote set-url origin https://example.com/repo.git'
+  assert_denied
+  echo "$output" | jq -r '.hookSpecificOutput.permissionDecisionReason' | grep -F 'git remote set-url' >/dev/null
+}
+
 @test "denies git mutation hidden after a pipeline" {
   run run_hook "Bash" 'git log | head -1 && git checkout main'
   assert_denied
