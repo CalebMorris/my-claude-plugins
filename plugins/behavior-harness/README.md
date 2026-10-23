@@ -42,6 +42,9 @@ invocation whose subcommand isn't on a small read-only allowlist
 `rev-parse`, `rev-list`, `describe`, `shortlog`, `cat-file`, `grep`,
 `help`, `version`/`--version`/`-v`).
 
+`remote` is allowed only for its read-only forms: a bare listing (`git remote`, `git remote -v`, `git remote --verbose`), its help (`git remote -h`, `git remote --help`), `git remote get-url`, and `git remote show`.
+Every other `remote` action (`add`, `set-url`, `rename`, `remove`, `prune`, ...) is denied, and the reason names the action and lists the read-only forms.
+
 **Why:** git staging, working-tree, and history state (`add`,
 `checkout`, `restore`, `reset`, `commit`, `stash`, `branch`, `merge`,
 `rebase`, `push`, `pull`, `tag`, `mv`, `rm`, `clean`, ...) is the
@@ -53,6 +56,8 @@ nobody thought to add to it.
 
 **Detection:** the command is split into shell words by a quote-aware tokenizer, so a `git` invocation is recognized wherever it appears — inside a pipeline (`git log | head`), behind top-level flags (`git -C /some/repo mv a b`), with a quoted subcommand (`git "mv" a b`), or called by path (`/usr/bin/git mv a b`).
 Words that merely contain `git`, like `mygit` and `digit`, are not matched.
+Redirections (`2>&1`, `>file`, `&>/dev/null`) are ignored along with their target, so `git remote -v 2>&1` is allowed while `git remote >/dev/null add upstream <url>` is still denied as `git remote add`.
+An unquoted newline ends a command just as `|` or `;` does.
 The tokenizer needs no external command, so the hook behaves the same on macOS and Linux.
 
 **Out of scope on purpose:** tokenizing is purely lexical — the command is never evaluated or expanded, so a subcommand assembled at runtime (`git $verb`) is not resolved and will not be blocked.
